@@ -59,6 +59,9 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
     with open(os.path.join(output_path, "log.txt"), 'w') as f:
         metrics = "phase, epoch, loss, accuracy"
         f.write(metrics + '\n')
+    
+    if not os.path.exists(os.path.join(output_path.split("/")[0], "summary.txt")):
+        open(os.path.join(output_path.split("/")[0], "summary.txt"), 'w').close()
 
     for epoch in tqdm.trange(start_epoch, num_epochs, desc="epoch ", ncols=80):
         # Each epoch has a training and validation phase
@@ -112,22 +115,24 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
             # deep copy the model
             if phase == 'val':
                 torch.save({
-                    'arch': arch, 'epoch': epoch,
+                    'arch': arch, 'num_classes': len(outputs),
+                    'epoch': epoch, 'best_acc': best_acc,
                     'optim_state_dict': optimizer.state_dict(),
                     'model_state_dict': model.state_dict(),
-                    'best_acc': best_acc,
                 }, os.path.join(output_path, 'checkpoint.pth'))
 
                 if epoch_acc > best_acc:
                     best_acc = epoch_acc
                     torch.save({
-                        'arch': arch, 'epoch': epoch,
+                        'arch': arch, 'num_classes': len(outputs),
+                        'epoch': epoch, 'best_acc': best_acc,
                         'optim_state_dict': optimizer.state_dict(),
                         'model_state_dict': model.state_dict(),
-                        'best_acc': best_acc,
                     }, os.path.join(output_path, f'{arch}_best.pth'))
 
     print('Best Acc: {:4f}'.format(best_acc))
+    with open(os.path.join(output_path.split("/")[0], "summary.txt"), 'a') as f:
+        f.write(f"{output_path}, {best_acc}\n")
 
 
 if __name__ == "__main__":
