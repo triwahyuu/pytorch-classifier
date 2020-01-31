@@ -1,8 +1,5 @@
 from __future__ import print_function, division
 
-import multiprocessing
-multiprocessing.set_start_method('spawn', True)
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -135,23 +132,7 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
         f.write(f"{output_path}, {best_acc}\n")
 
 
-if __name__ == "__main__":
-    model_choices = models.resnet.__all__[1:] + models.vgg.__all__[1:]
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-a", "--arch", metavar="arch", default="resnet101", choices=model_choices,
-        help="model architecture: " + " | ".join(model_choices) +  " (default: resnet101)"
-    )
-    parser.add_argument('--datapath', default='dataset/', help='suction grasp dataset path')
-    parser.add_argument('--output-path', default='', help='training result path')
-    parser.add_argument("--resume", default="", type=str, help="checkpoint path to resume training")
-    parser.add_argument("--epochs", type=int, default=100, help="number of epochs of training")
-    parser.add_argument("--batch-size", type=int, default=4, help="batch size for training")
-    parser.add_argument("--img-size", type=int, default=224, help="image dataset size in training")
-    parser.add_argument('--use-scheduler', action='store_true', help='use lr scheduler')
-    args = parser.parse_args()
-
+def main(args):
     print(f"Training {args.arch}")
     now = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
@@ -182,3 +163,23 @@ if __name__ == "__main__":
 
     train_model(model, args.arch, dataloaders, criterion, optimizer, scheduler=scheduler, 
         num_epochs=args.epochs, output_path=os.path.join("result", args.arch, now), start_epoch=start_epoch)
+
+
+if __name__ == "__main__":
+    model_choices = models.resnet.__all__[1:] + models.vgg.__all__[1:]
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-a", "--arch", metavar="arch", default="resnet101", choices=model_choices,
+        help="model architecture: " + " | ".join(model_choices) +  " (default: resnet101)"
+    )
+    parser.add_argument('--datapath', default='dataset/', help='dataset path')
+    parser.add_argument('--output-path', default='', help='training result path')
+    parser.add_argument("--resume", default="", type=str, help="checkpoint path to resume training")
+    parser.add_argument("--epochs", type=int, default=100, help="number of epochs of training")
+    parser.add_argument("--batch-size", type=int, default=4, help="batch size for training")
+    parser.add_argument("--img-size", type=int, default=224, help="image dataset size in training")
+    parser.add_argument('--use-scheduler', action='store_true', help='use lr scheduler')
+    args = parser.parse_args()
+
+    main(args)
