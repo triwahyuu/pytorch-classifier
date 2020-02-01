@@ -61,7 +61,7 @@ class Classifier(object):
             return result[-1]
         else:
             return result
-    
+
 
 if __name__ == "__main__":
     data_dir = os.path.join(os.path.dirname(__file__), "dataset", "val")
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     category.sort()
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', default='result/resnet34/20200130_205545/resnet34_best.pth', 
+    parser.add_argument('--model', default='result/resnet18/resnet18_best.pth', 
         help='pretrained model path')
     parser.add_argument('--input', default='', 
         help='input path for single image or folder containing images')
@@ -85,5 +85,6 @@ if __name__ == "__main__":
         else:
             print(category[out])
     else:
-        print(category[classifier("dataset/val/Marlin/Marlin20.jpg")])
-        print(category[classifier("dataset/val/HiuPutih/HiuPutih3.jpg")])
+        input_imgs = "data"
+        out = classifier(input_imgs)
+        print([category[i] for i in out])

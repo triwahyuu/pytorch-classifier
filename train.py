@@ -128,7 +128,8 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
                         'model_state_dict': model.state_dict(),
                     }, os.path.join(output_path, '{}_best.pth'.format(arch)))
 
-    print('Best Acc: {:4f}'.format(best_acc))
+    print("Best Acc: {:4f}".format(best_acc))
+    print("Trained model is saved to: {}".format(output_path))
     with open(os.path.join(output_path.split("/")[0], "summary.txt"), 'a') as f:
         f.write("{}, {}\n".format(output_path, best_acc))
 
@@ -136,16 +137,16 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
 def main(arch="resnet18", data_path="dataset/", resume="", epochs=100, 
          batch_size=4, img_size=224, use_scheduler=False, **kwargs):
 
-    print("Training {}".format(arch))
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     now = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+
+    print("Training {} on {}".format(arch, device))
 
     ## dataset
     dataloaders = prepare_dataloaders(data_path, img_size, batch_size)
     dataset_sizes = {x: len(dataloaders[x].dataset) for x in ['train', 'val']}
     class_names = dataloaders['train'].dataset.classes
     n_class = len(class_names)
-
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     ## models
     model, criterion, optimizer = prepare_model(arch, n_class)
@@ -164,7 +165,7 @@ def main(arch="resnet18", data_path="dataset/", resume="", epochs=100,
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     train_model(model, arch, dataloaders, criterion, optimizer, scheduler=scheduler, 
-        num_epochs=epochs, output_path=os.path.join("result", arch, now), start_epoch=start_epoch)
+        num_epochs=epochs, output_path=os.path.join("result", arch), start_epoch=start_epoch)
 
 
 if __name__ == "__main__":
