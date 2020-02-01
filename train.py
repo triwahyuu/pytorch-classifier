@@ -14,6 +14,7 @@ import argparse
 import datetime
 import tqdm
 
+available_models = models.resnet.__all__[1:] + models.vgg.__all__[1:]
 
 def prepare_dataloaders(datapath='dataset/', img_size=224, batch_size=4):
     # Data augmentation and normalization for training
@@ -72,7 +73,7 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
             running_corrects = 0
 
             for inputs, labels in tqdm.tqdm(dataloaders[phase], total=len(dataloaders[phase]), 
-                    desc=f" {phase}", ncols=80, leave=False):
+                    desc=" {}".format(phase), ncols=80, leave=False):
 
                 inputs = inputs.to(device)
                 labels = labels.to(device)
@@ -101,8 +102,8 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
 
-            writer.add_scalar(f"loss/{phase}", epoch_loss, epoch)
-            writer.add_scalar(f"accuracy/{phase}", epoch_acc, epoch)
+            writer.add_scalar("loss/{}".format(phase), epoch_loss, epoch)
+            writer.add_scalar("accuracy/{}".format(phase), epoch_acc, epoch)
 
             with open(os.path.join(output_path, "log.txt"), 'a') as f:
                 metrics = "{}, {}, {:.10f}, {:.10f}".format(phase, epoch, 
@@ -125,19 +126,21 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
                         'epoch': epoch, 'best_acc': best_acc,
                         'optim_state_dict': optimizer.state_dict(),
                         'model_state_dict': model.state_dict(),
-                    }, os.path.join(output_path, f'{arch}_best.pth'))
+                    }, os.path.join(output_path, '{}_best.pth'.format(arch)))
 
     print('Best Acc: {:4f}'.format(best_acc))
     with open(os.path.join(output_path.split("/")[0], "summary.txt"), 'a') as f:
-        f.write(f"{output_path}, {best_acc}\n")
+        f.write("{}, {}\n".format(output_path, best_acc))
 
 
-def main(args):
-    print(f"Training {args.arch}")
+def main(arch="resnet18", data_path="dataset/", resume="", epochs=100, 
+         batch_size=4, img_size=224, use_scheduler=False, **kwargs):
+
+    print("Training {}".format(arch))
     now = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
     ## dataset
-    dataloaders = prepare_dataloaders(args.datapath, args.img_size, args.batch_size)
+    dataloaders = prepare_dataloaders(data_path, img_size, batch_size)
     dataset_sizes = {x: len(dataloaders[x].dataset) for x in ['train', 'val']}
     class_names = dataloaders['train'].dataset.classes
     n_class = len(class_names)
@@ -145,41 +148,37 @@ def main(args):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     ## models
-    model, criterion, optimizer = prepare_model(args.arch, n_class)
+    model, criterion, optimizer = prepare_model(arch, n_class)
 
     start_epoch = 0
-    if args.resume != '':
-        checkpoint = torch.load(args.resume)
-        if checkpoint["arch"] != args.arch:
+    if resume != '':
+        checkpoint = torch.load(resume)
+        if checkpoint["arch"] != arch:
             raise ValueError
         start_epoch = checkpoint['epoch'] + 1
         model.load_state_dict(checkpoint['model_state_dict'], strict=True)
         optimizer.load_state_dict(checkpoint['optim_state_dict'])
-
-    if args.use_scheduler:
+    
+    scheduler = None
+    if use_scheduler:
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
-    else:
-        scheduler = None
 
-    train_model(model, args.arch, dataloaders, criterion, optimizer, scheduler=scheduler, 
-        num_epochs=args.epochs, output_path=os.path.join("result", args.arch, now), start_epoch=start_epoch)
+    train_model(model, arch, dataloaders, criterion, optimizer, scheduler=scheduler, 
+        num_epochs=epochs, output_path=os.path.join("result", arch, now), start_epoch=start_epoch)
 
 
 if __name__ == "__main__":
-    model_choices = models.resnet.__all__[1:] + models.vgg.__all__[1:]
-
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-a", "--arch", metavar="arch", default="resnet101", choices=model_choices,
-        help="model architecture: " + " | ".join(model_choices) +  " (default: resnet101)"
+        "-a", "--arch", metavar="arch", default="resnet101", choices=available_models,
+        help="model architecture: " + " | ".join(available_models) +  " (default: resnet101)"
     )
-    parser.add_argument('--datapath', default='dataset/', help='dataset path')
-    parser.add_argument('--output-path', default='', help='training result path')
+    parser.add_argument('--data-path', default='dataset/', help='dataset path')
     parser.add_argument("--resume", default="", type=str, help="checkpoint path to resume training")
     parser.add_argument("--epochs", type=int, default=100, help="number of epochs of training")
     parser.add_argument("--batch-size", type=int, default=4, help="batch size for training")
     parser.add_argument("--img-size", type=int, default=224, help="image dataset size in training")
     parser.add_argument('--use-scheduler', action='store_true', help='use lr scheduler')
-    args = parser.parse_args()
+    args = vars(parser.parse_args())
 
     main(args)
