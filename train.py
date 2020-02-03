@@ -17,8 +17,6 @@ from tqdm.auto import trange, tqdm
 available_models = models.resnet.__all__[1:] + models.vgg.__all__[1:]
 
 def prepare_dataloaders(datapath='dataset/', img_size=224, batch_size=4):
-    # Data augmentation and normalization for training
-    # Just normalization for validation
     data_transforms = {
         'train': transforms.Compose([
             transforms.RandomResizedCrop(img_size),
