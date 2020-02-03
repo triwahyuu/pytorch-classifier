@@ -55,3 +55,12 @@ def prepare_model(arch, n_class, freeze_layer=True):
     ## loss function
     criterion = nn.CrossEntropyLoss().to(device)
     return model, criterion, optimizer
+
+
+def is_notebook():
+    try:
+        from IPython import get_ipython
+        if 'IPKernelApp' in get_ipython().config:
+            return True
+    except:
+        return False

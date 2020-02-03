@@ -13,7 +13,7 @@ class Classifier(object):
         super(Classifier, self).__init__()
 
         pretrained = torch.load(pretrained_path)
-        self.model, _, _ = prepare_model(pretrained['arch'], 2)
+        self.model, _, _ = prepare_model(pretrained['arch'], pretrained['num_classes'])
         self.model.load_state_dict(pretrained['model_state_dict'], strict=True)
 
         self.is_cuda = cuda
@@ -32,8 +32,10 @@ class Classifier(object):
         single_pred = False
         if isinstance(input_imgs_or_path, str):
             if os.path.isdir(input_imgs_or_path):
-                input_imgs = [f for f in os.listdir(input_imgs_or_path) \
-                    if os.path.isfile(os.path.join(input_imgs_or_path, f))]
+                input_imgs = [
+                    os.path.join(input_imgs_or_path, f) for f in os.listdir(input_imgs_or_path) \
+                        if os.path.isfile(os.path.join(input_imgs_or_path, f))
+                ]
                 if len(input_imgs) == 0:
                     raise RuntimeError("no files in directory")
             elif os.path.isfile(input_imgs_or_path):
@@ -64,6 +66,8 @@ class Classifier(object):
 
 
 if __name__ == "__main__":
+    import argparse
+
     data_dir = os.path.join(os.path.dirname(__file__), "dataset", "val")
     category = [d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d))]
     category.sort()
