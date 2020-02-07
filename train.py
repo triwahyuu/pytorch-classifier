@@ -148,15 +148,12 @@ def main(arch="resnet18", data_path="dataset/", resume="", epochs=25,
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     now = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
-    print("Training {} on {}".format(arch, device))
-    if is_notebook():
-        print("you can also check progress on tensorboard, execute in terminal:")
-        print("  > tensorboard --logdir result/<model_name>/tb/")
-
     ## dataset
     dataloaders = prepare_dataloaders(data_path, img_size, batch_size)
     class_names = dataloaders['train'].dataset.classes
     n_class = len(class_names)
+    
+    print("preparing {} model with {} number of class".format(arch, n_class))
 
     ## models
     model, criterion, optimizer = prepare_model(arch, n_class)
@@ -183,6 +180,11 @@ def main(arch="resnet18", data_path="dataset/", resume="", epochs=25,
     scheduler = None
     if use_scheduler:
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
+    
+    print("Training {} on {}".format(arch, device))
+    if is_notebook():
+        print("you can also check progress on tensorboard, execute in terminal:")
+        print("  > tensorboard --logdir result/<model_name>/tb/")
 
     train_model(model, arch, dataloaders, criterion, optimizer, scheduler=scheduler, 
         num_epochs=epochs, output_path=os.path.join("result", arch), start_epoch=start_epoch)
