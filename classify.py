@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
+import numpy as np
 
 from torchvision import models, transforms
 from PIL import Image
@@ -9,10 +10,13 @@ from utils import prepare_model
 import os
 
 class Classifier(object):
-    def __init__(self, pretrained_path, cuda=True):
+    def __init__(self, pretrained, cuda=True):
         super(Classifier, self).__init__()
 
-        pretrained = torch.load(pretrained_path)
+        if isinstance(pretrained, str):
+            pretrained = torch.load(pretrained)
+        elif isinstance(pretrained, dict):
+            pass
         self.model, _, _ = prepare_model(pretrained['arch'], pretrained['num_classes'])
         self.model.load_state_dict(pretrained['model_state_dict'], strict=True)
 
@@ -21,6 +25,8 @@ class Classifier(object):
             self.model = self.model.cuda()
             self.is_cuda = True
         self.model.eval()
+
+        self.class_names = np.array(pretrained['class_names'])
 
         self.preprocess = transforms.Compose([
             transforms.ToTensor(),
@@ -53,24 +59,20 @@ class Classifier(object):
             img = self.preprocess(Image.open(img_path)).unsqueeze(0)
             if self.is_cuda:
                 img = img.cuda()
-            
+
             with torch.no_grad():
                 pred = torch.sigmoid(self.model(img))
             _, cls_pred = pred.max(-1)
-            result.append(cls_pred)
+            result.append(cls_pred.detach().cpu().item())
 
         if single_pred:
-            return result[-1]
+            return self.class_names[result[0]]
         else:
-            return result
+            return list(self.class_names[result])
 
 
 if __name__ == "__main__":
     import argparse
-
-    data_dir = os.path.join(os.path.dirname(__file__), "dataset", "val")
-    category = [d for d in os.listdir(data_dir) if os.path.isdir(os.path.join(data_dir, d))]
-    category.sort()
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default='result/resnet18/resnet18_best.pth', 
@@ -82,13 +84,8 @@ if __name__ == "__main__":
     classifier = Classifier(args.model)
 
     if args.input != '':
-        out = classifier(args.input)
-        if isinstance(out, list):
-            for idx in out:
-                print(category[idx])
-        else:
-            print(category[out])
+        input_imgs = args.input
     else:
         input_imgs = "data"
-        out = classifier(input_imgs)
-        print([category[i] for i in out])
+    out = classifier(input_imgs)
+    print(out)

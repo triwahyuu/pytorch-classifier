@@ -38,7 +38,7 @@ def prepare_dataloaders(datapath='dataset/', img_size=224, batch_size=4):
     dataloaders = {'train': torch.utils.data.DataLoader(image_datasets['train'], batch_size=batch_size,
                         shuffle=True, num_workers=4, pin_memory=True),
                     'val': torch.utils.data.DataLoader(image_datasets['val'], batch_size=1,
-                        shuffle=False, num_workers=1, pin_memory=True)}
+                        shuffle=False, num_workers=0, pin_memory=True)}
 
     return dataloaders
 
@@ -49,6 +49,7 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
     best_acc = 0.0
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     dataset_sizes = {x: len(dataloaders[x].dataset) for x in ['train', 'val']}
+    class_names = dataloaders['train'].dataset.classes
     
     os.makedirs(output_path, exist_ok=True)
     os.makedirs(os.path.join(output_path, "tb"), exist_ok=True)
@@ -95,7 +96,7 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
                         optimizer.step()
 
                 # statistics
-                loss_data = loss.item() * inputs.size(0)
+                loss_data = loss.detach().cpu().item() * inputs.size(0)
                 running_loss += loss_data
                 running_corrects += torch.sum(preds == labels.data)
 
@@ -103,7 +104,7 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
                 scheduler.step()
 
             epoch_loss = running_loss / dataset_sizes[phase]
-            epoch_acc = running_corrects.double() / dataset_sizes[phase]
+            epoch_acc = running_corrects.double().item() / dataset_sizes[phase]
             trainval_loss[phase] = epoch_loss
             trainval_acc[phase] = epoch_acc
 
@@ -119,6 +120,7 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
             if phase == 'val':
                 torch.save({
                     'arch': arch, 'epoch': epoch, 'best_acc': best_acc,
+                    'class_names': class_names,
                     'num_classes': len(dataloaders['train'].dataset.classes),
                     'optim_state_dict': optimizer.state_dict(),
                     'model_state_dict': model.state_dict(),
@@ -128,6 +130,7 @@ def train_model(model, arch, dataloaders, criterion, optimizer,
                     best_acc = epoch_acc
                     torch.save({
                         'arch': arch, 'epoch': epoch, 'best_acc': best_acc,
+                        'class_names': class_names,
                         'num_classes': len(dataloaders['train'].dataset.classes),
                         'optim_state_dict': optimizer.state_dict(),
                         'model_state_dict': model.state_dict(),
@@ -153,7 +156,7 @@ def main(arch="resnet18", data_path="dataset/", resume="", epochs=25,
     class_names = dataloaders['train'].dataset.classes
     n_class = len(class_names)
     
-    print("preparing {} model with {} number of class".format(arch, n_class))
+    print("preparing '{}' model with {} class: {}".format(arch, n_class, class_names))
 
     ## models
     model, criterion, optimizer = prepare_model(arch, n_class)
@@ -196,12 +199,12 @@ if __name__ == "__main__":
         "-a", "--arch", metavar="arch", default="resnet18", choices=available_models,
         help="model architecture: " + " | ".join(available_models) +  " (default: resnet18)"
     )
-    parser.add_argument('--data-path', default='dataset/', help='dataset path')
+    parser.add_argument('--data-path', default='dataset/hymenoptera', help='dataset path')
     parser.add_argument("--resume", default="", type=str, help="checkpoint path to resume training")
     parser.add_argument("--epochs", type=int, default=25, help="number of epochs of training")
     parser.add_argument("--batch-size", type=int, default=4, help="batch size for training")
     parser.add_argument("--img-size", type=int, default=224, help="image dataset size in training")
-    parser.add_argument('--use-scheduler', action='store_true', help='use lr scheduler')
+    parser.add_argument('--use-scheduler', action='store_true', help='enable training using lr scheduler')
     args = vars(parser.parse_args())
 
     main(**args)
