@@ -73,7 +73,7 @@ def visualise(img, label):
         raise RuntimeError("unsupported input type of %s" % type(img))
 
     plt.imshow(img)
-    plt.title(label)
+    plt.title(label, fontdict={'fontsize': 'xx-large'})
     plt.gca().axis("off")
     plt.show()
 
