@@ -6,6 +6,7 @@ from torchvision import datasets, models, transforms
 
 import numpy as np
 import matplotlib.pyplot as plt
+from PIL import Image
 
 
 def visualise(inp, title=None):
@@ -59,6 +60,22 @@ def prepare_model(arch, n_class, freeze_layer=True):
     ## loss function
     criterion = nn.NLLLoss().to(device)
     return model, criterion, optimizer
+
+
+def visualise(img, label):
+    if isinstance(img, np.ndarray):
+        pass
+    elif isinstance(img, str):
+        img = np.asarray(Image.open(img))
+    elif isinstance(img, Image.Image):
+        img = np.asarray(img)
+    else:
+        raise RuntimeError("unsupported input type of %s" % type(img))
+
+    plt.imshow(img)
+    plt.title(label)
+    plt.gca().axis("off")
+    plt.show()
 
 
 def is_notebook():

@@ -5,12 +5,12 @@ import numpy as np
 
 from torchvision import models, transforms
 from PIL import Image
-from utils import prepare_model
+from utils import prepare_model, visualise as visualise_label
 
 import os
 
 class Classifier(object):
-    def __init__(self, pretrained, cuda=True):
+    def __init__(self, pretrained, cuda=True, visualise=False):
         super(Classifier, self).__init__()
 
         if isinstance(pretrained, str):
@@ -27,6 +27,7 @@ class Classifier(object):
         self.model.eval()
 
         self.class_names = np.array(pretrained['class_names'])
+        self.visualise = visualise
 
         self.preprocess = transforms.Compose([
             transforms.ToTensor(),
@@ -66,8 +67,13 @@ class Classifier(object):
             result.append(cls_pred.detach().cpu().item())
 
         if single_pred:
+            if self.visualise:
+                visualise_label(Image.open(input_imgs[0]), self.class_names[result[0]])
             return self.class_names[result[0]]
         else:
+            if self.visualise:
+                for i, l in zip(input_imgs, result):
+                    visualise_label(Image.open(i), self.class_names[l])
             return list(self.class_names[result])
 
 
@@ -79,9 +85,10 @@ if __name__ == "__main__":
         help='pretrained model path')
     parser.add_argument('--input', default='', 
         help='input path for single image or folder containing images')
+    parser.add_argument('--no-visualise', action='store_true', help="don't visualise classification result")
     args = parser.parse_args()
 
-    classifier = Classifier(args.model)
+    classifier = Classifier(args.model, visualise=(not args.no_visualise))
 
     if args.input != '':
         input_imgs = args.input
