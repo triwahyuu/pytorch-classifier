@@ -33,7 +33,10 @@ def prepare_model(arch, n_class, freeze_layer=True):
     optimizer = None
     if "resnet" in arch:
         num_features = model.fc.in_features
-        model.fc = nn.Linear(num_features, n_class)
+        model.fc = nn.Sequential(
+            nn.Linear(num_features, n_class),
+            nn.LogSoftmax(dim=1)
+        )
         model.to(device)
 
         optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
@@ -47,13 +50,14 @@ def prepare_model(arch, n_class, freeze_layer=True):
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(4096, n_class),
+            nn.LogSoftmax(dim=1)
         )
         model.to(device)
 
         optimizer = optim.SGD(model.classifier.parameters(), lr=0.001, momentum=0.9)
 
     ## loss function
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = nn.NLLLoss().to(device)
     return model, criterion, optimizer
 
 
