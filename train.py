@@ -12,7 +12,11 @@ import os
 import time
 import argparse
 import datetime
-from tqdm.auto import trange, tqdm
+
+if is_notebook():
+    from tqdm.notebook import tqdm, trange
+else:
+    from tqdm import tqdm, trange
 
 available_models = models.resnet.__all__[1:] + models.vgg.__all__[1:]
 
