@@ -30,8 +30,7 @@ def prepare_model(arch, n_class, freeze_layer=True):
     if freeze_layer:
         for param in model.parameters():
             param.requires_grad = False
-    
-    optimizer = None
+
     if "resnet" in arch:
         num_features = model.fc.in_features
         model.fc = nn.Sequential(
@@ -39,8 +38,6 @@ def prepare_model(arch, n_class, freeze_layer=True):
             nn.LogSoftmax(dim=1)
         )
         model.to(device)
-
-        optimizer = optim.SGD(model.fc.parameters(), lr=0.001, momentum=0.9)
     elif "vgg" in arch:
         num_features = model.classifier[0].in_features
         model.classifier = nn.Sequential(
@@ -54,8 +51,7 @@ def prepare_model(arch, n_class, freeze_layer=True):
             nn.LogSoftmax(dim=1)
         )
         model.to(device)
-
-        optimizer = optim.SGD(model.classifier.parameters(), lr=0.001, momentum=0.9)
+    optimizer = optim.SGD(model.parameters(), lr=0.0005, momentum=0.9)
 
     ## loss function
     criterion = nn.NLLLoss().to(device)
